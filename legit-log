@@ -1,0 +1,9 @@
+#!/bin/dash
+if test -s ".legit/log.txt"
+then
+    :
+else
+    echo "legit-log: error: your repository does not have any commits yet"
+    exit 1
+fi
+cat ".legit/log.txt"

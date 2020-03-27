@@ -1,0 +1,13 @@
+28/06/2019		9:00	9:15	Reading		Reading the spec and thinking about the best way to implement
+29/06/2019		12:00	3:00 	Testing		Writing up test cases and creating test scripts
+01/07/2019		14:00	18:00	Coding		Doing the legit-init and legit-add
+01/07/2019		19:00	21:00	Debugging	Debugging legit-add multiple files
+02/07/2019		18:00   02:00	Coding		Coded for legit-commit(for 1 file only), legit-log and legit-show
+11/07/2019		15:00	02:00	Coding		Coded for legit-commit -a and coded the rough structure for legit-rm
+12/07/2019		2:00	05:00	Debugging/Researching	Debugging for Errors for legit-rm and trying to understand how legit-rm works
+12/07/2019		14:00	15:00	Testing		Updated test.sh for more error checking for legit-rm
+12/07/2019		17:00	20:00	Coding/Debugging	Coding and fixing errors that are found from tests. Testing all test cases e.g. Exists in Local Files, Same in Index but missing in Repo then check 													the error message for it 
+13/07/2019		12:00	19:00	Coding/Testing	Skipped straight to doing legit-status first because I needed a break from legit-rm error checking. legit-status have similar cases or legit-rm
+												so the testing and debugging was a lot quicker.
+13/07/2019		19:00 	20:00	Debugging	Finished debugging legit-rm but not confident that I covered all the test cases...
+13/07/2019		20:00	20:30	Testing		Modified and improved some of the test scripts

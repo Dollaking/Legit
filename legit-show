@@ -1,0 +1,54 @@
+#!/bin/dash
+commits=$1
+# Check if there is repository
+if [ "$(ls -d .legit)" = "ls: cannot access .legit: No such file or directory" ]
+    then
+    echo "legit-show: error: your repository does not have any commits yet"
+fi
+
+commit=$(echo "$commits" | cut -d':' -f1)
+filename=$(echo "$commits" | cut -d':' -f2)
+
+
+cmds=$filename
+range=`echo $cmds | egrep '^[a-zA-Z0-9]' 2>&1`
+range1=`echo $cmds | egrep '[^a-zA-Z0-9._\-]+' 2>&1`
+#Filename Check Only Right First Letter
+if [ "$range" = "" ]
+    then
+    echo "legit-show: error: invalid filename '$cmds'"
+    exit 1
+fi
+
+if [ "$range1" != "" ]
+    then 
+    echo "legit-show: error: invalid filename '$cmds'"
+    exit 1
+fi
+		
+
+#Index
+if [ "$commit" = "" ]
+    then
+    if test -e .legit/index/$filename
+    then
+        cat .legit/index/$filename
+    else
+        echo "legit-show: error: '$filename' not found in index"
+    fi
+#Commit
+else
+    #Valid Commit
+    if test -e .legit/commits/$commit
+        then 
+        if test -e .legit/commits/$commit/$filename
+            then
+                cat .legit/commits/$commit/$filename
+        else
+            echo "legit-show: error: '$filename' not found in commit $commit"
+        fi
+    else
+        echo "legit-show: error: unknown commit '$commit'"
+    fi
+fi
+    

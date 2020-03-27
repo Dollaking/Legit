@@ -1,0 +1,13 @@
+#!/bin/dash
+if test -e .legit
+then 
+    echo "legit-init: error: .legit already exists"
+else 
+    echo "Initialized empty legit repository in .legit"
+    mkdir .legit
+    mkdir -p .legit/branches
+    mkdir -p .legit/index
+    mkdir -p .legit/commits
+    echo "" > .legit/log.txt
+fi
+

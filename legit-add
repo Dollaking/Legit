@@ -1,0 +1,39 @@
+#!/bin/dash
+if test -e ".legit"
+then
+    :
+else
+    echo "legit-add: error: no .legit directory containing legit repository exists"
+    exit 1
+fi
+
+for cmds in $@
+do
+	#Name Check
+	range=`echo $cmds | egrep '^[a-zA-Z0-9]' 2>&1`
+	range1=`echo $cmds | egrep '[^a-zA-Z0-9._\-]+' 2>&1`
+	#Filename Check Only Right First Letter
+	if [ "$range" = "" ]
+		then
+		echo "legit-add: error: invalid filename '$cmds'"
+		exit 1
+	fi
+
+	if [ "$range1" != "" ]
+		then 
+		echo "legit-add: error: invalid filename '$cmds'"
+		exit 1
+	fi
+
+		
+    if test -e $cmds
+    then
+        cp $cmds .legit/index
+    elif test -e .legit/index/$cmds
+    then
+    	rm -f .legit/index/$cmds
+    else
+        echo "legit-add: error: can not open '$cmds'"
+        exit 1
+    fi
+done

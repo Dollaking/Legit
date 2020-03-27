@@ -1,0 +1,170 @@
+#!/bin/dash
+
+force=0
+cached=0
+
+# Go through all the arguments to check for force and cached
+# Also Error Checking (That cant be bypassed for --force)
+for index in $@
+do
+	#echo $index
+	if [ $index = "--force" ]
+	then
+		force=$(($force + 1))
+		continue
+	fi
+	
+	if [ $index = "--cached" ]
+	then
+		cached=$(($cached + 1))
+		
+		continue
+	fi	
+	#Name Check
+	error=`legit-namecheck $index`
+	if [ "$error" != "" ]
+	then
+		echo "legit-rm: error: invalid filename '$index'"
+		exit 1
+	fi
+	
+	# Not in repository Error Check
+	if test -f ".legit/index/$index"
+	then
+		:
+	else
+		echo "legit-rm: error: '$index' is not in the legit repository"
+		exit 1
+	fi	
+done
+
+# Error Checking
+# Checking if --force --cached are valid
+fctotal=$(($force + $cached))
+if [ $fctotal -ge $# ]
+then
+	echo "usage: legit-rm [--force] [--cached] <filenames>"
+fi	
+
+# Error checking only for errors that can bypassed by --force
+for index in $@
+do
+	# If --force
+	if [ $index = "--force" ]
+	then
+		continue
+	fi
+	
+	# If --cached
+	if [ $index = "--cached" ]
+	then
+		continue
+	fi
+
+	#Checking if files are different
+	repo=$(ls -t .legit/commits | head -1)
+	localindex=`diff $index .legit/index/$index 2>&1`
+	localrepo=`diff $index .legit/commits/$repo/$index 2>&1`
+	indexrepo=`diff .legit/index/$index .legit/commits/$repo/$index 2>&1`
+	allsame=0
+	alldiff=0
+	if [ "$localindex" = "$localrepo" ]
+	then
+		allsame=1
+	elif [ "$localindex" != "$localrepo" ]
+	then
+		if [ "$localindex" != "$indexrepo" ]
+		then
+			if [ "$indexrepo" != "$localrepo" ]
+			then
+				alldiff=1
+			fi
+		fi
+	fi
+
+	# No Force and Cached	
+	if [ $fctotal -eq 0 ]
+	then				
+		#If they are all the same
+		if [ $allsame -eq 1 ]
+		then
+			rm "$index" 2> /dev/null
+			rm ".legit/index/$index"
+			continue
+		#If they are all different
+		elif [ $alldiff -eq 1 ]
+		then
+			echo "legit-rm: error: '$index' in index is different to both working file and repository"
+			continue
+		#If Local and Repo are same
+		elif [ "$localrepo" = "" ]
+		then
+			echo "legit-rm: error: '$index' in index is different to both working file and repository"
+			continue
+		#If Local and Index are same
+		elif [ "$localindex" = "" ]
+		then
+			echo "legit-rm: error: '$index' has changes staged in the index"
+			continue
+		#If Index and Repo are same
+		elif [ "$indexrepo" = "" ]
+		then
+			echo "legit-rm: error: '$index' in repository is different to working file"
+			continue
+		fi		
+	fi
+	
+	# Force Only
+	if [ $force -gt 0 ]
+	then
+		if [ $cached -eq 0 ]
+		then
+			#Removing both local and index files
+			rm "$index" 2> /dev/null
+			rm ".legit/index/$index"
+			continue
+		fi
+	fi
+	
+	# Cached Only
+	if [ $cached -gt 0 ]
+	then 
+		if [ $force -eq 0 ]
+		then
+			#All Same
+			if [ $allsame -eq 1 ]
+			then
+				rm "$index" 2> /dev/null
+				rm ".legit/index/$index"
+				continue
+			#If they are all different
+			elif [ $alldiff -eq 1 ]
+			then
+				echo "legit-rm: error: '$index' in index is different to both working file and repository ALL DIFFERENT"
+				continue
+			#If Local and Repo are same
+			elif [ "$localrepo" = "" ]
+			then
+				echo "legit-rm: error: '$index' in index is different to both working file and repository LOCALREPO"
+				continue
+			else
+				#Removing only in index
+				rm ".legit/index/$index"
+				continue
+			fi
+		fi
+	fi	
+	
+	# Force and Cached
+	if [ $cached -gt 0 ]
+	then
+		if [$force -gt 0 ]
+		then
+			#Removing only in index
+			rm ".legit/index/$index"
+			continue
+		fi
+	fi
+done
+
+# Going through the arguments this time now actually implementing 

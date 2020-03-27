@@ -1,0 +1,114 @@
+#!/bin/dash
+if [ "$(ls .legit 2>&1)" = "" ]
+then    
+    echo "legit-commit: error: no .legit directory containing legit repository exists"
+    exit 1
+fi
+   
+isempty=$(ls ".legit/commits")  
+
+if [ "$#" = "2" ]
+then
+    msg=$2
+    if [ "$1" != "-m" ]
+    then
+        echo "usage: legit-commit [-a] -m commit-message"
+        exit 1
+    fi
+elif [ "$#" = "3" ]
+    then
+        msg=$3
+        if [ "$2" != "-m" ]
+        then
+            echo "usage: legit-commit [-a] -m commit-message"
+            exit 1
+        fi
+
+        if [ "$1" != "-a" ]
+        then 
+            echo "usage: legit-commit [-a] -m commit-message"
+            exit 1
+        fi  
+        
+        if [ "$ls .legit/ls" = "" ] 
+        then
+        	echo "nothing to commit"
+        	exit 1
+        fi
+else
+    echo "usage: legit-commit [-a] -m commit-message"
+    exit 1
+fi
+
+
+# With -a
+if [ "$#" = "3" ]
+then
+	# ---Error---
+	# Empty Index
+	if [ "$(ls .legit/index)" = "" ]
+	then
+		echo "nothing to commit"
+		exit 1
+	fi
+	
+	# Loop through every file in index
+	for files in .legit/index/*
+	do
+		new=`echo "$files"|sed s/".legit\/index\/"//`
+		if [ "$(ls $new 2>&1 /dev/null)" = "" ]
+		then
+			rm .legit/index/$new 2> /dev/null
+			continue
+		fi
+		
+		# Copying different local files to index
+		results=`diff $new $files`
+		if [ "$results" != "" ]
+		then
+			#echo "\nhi\n"
+			cp $new ".legit/index/"
+		fi
+	done
+fi
+
+if [ "$isempty" != "" ]
+    then
+    newest=`ls .legit/commits | sort -n -r 2> /dev/null | head -1`
+    next=$(($newest + 1))
+    log="$next $msg"
+    compare=$(diff -r .legit/index .legit/commits/$newest)
+    # --- If exist in newest commit but not in index, remove it from direct file ---
+    for lindex in "$(ls .legit/commits/$newest)"
+    do
+    	if [ "$(ls .legit/index/$lindex 2>&1)" = "" ]
+    	then
+			rm -f $lindex 2> /dev/null
+		fi
+    done
+    # --- If exist in newest commit but not in index, remove it from direct file ---
+    
+    if [ "$compare" != "" ]
+        then
+        cp -r .legit/index .legit/commits/$next
+        sed -i "1s/^/$log\n/" .legit/log.txt
+        echo "Committed as commit $next"
+        exit 1
+    else
+        echo "nothing to commit"
+        exit 1
+    fi
+else 
+    log="0 $msg"
+    compare1=$(ls .legit/index)
+    if [ "$compare1" != "" ]
+        then
+        cp -r .legit/index .legit/commits/0
+        sed -i "1s/^/$log/" .legit/log.txt
+        echo "Committed as commit 0"
+        exit 1
+    else
+        echo "nothing to commit"
+        exit 1
+    fi
+fi

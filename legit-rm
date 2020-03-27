@@ -1,0 +1,364 @@
+#!/bin/dash
+
+force=0
+cached=0
+
+# Go through all the arguments to check for force and cached
+# Also Error Checking (That cant be bypassed for --force)
+for index in $@
+do
+	#echo $index
+	if [ $index = "--force" ]
+	then
+		force=$(($force + 1))
+		continue
+	fi
+	
+	if [ $index = "--cached" ]
+	then
+		cached=$(($cached + 1))	
+		continue
+	fi	
+	
+	# Name Check	
+	cmds=$index
+	range=`echo $cmds | egrep '^[a-zA-Z0-9]' 2>&1`
+	range1=`echo $cmds | egrep '[^a-zA-Z0-9._\-]+' 2>&1`
+	#Filename Check Only Right First Letter
+	if [ "$range" = "" ]
+		then
+		echo "legit-rm: error: invalid filename '$cmds'"
+		exit 1
+	fi
+
+	if [ "$range1" != "" ]
+		then 
+		echo "legit-rm: error: invalid filename '$cmds'"
+		exit 1
+	fi	
+	
+done
+
+# Error Checking
+# Checking if --force --cached are valid
+fctotal=$(($force + $cached))
+if [ $fctotal -ge $# ]
+then
+	echo "usage: legit-rm [--force] [--cached] <filenames>"
+	exit 1
+fi	
+
+
+
+
+
+
+# Not in legit Repository Error Check
+
+for index in $@
+do
+	# If --force
+	if [ $index = "--force" ]
+	then
+		continue
+	fi
+	
+	# If --cached
+	if [ $index = "--cached" ]
+	then
+		continue
+	fi
+
+	#Checking if files are different
+	repo=`ls .legit/commits | sort -n -r 2> /dev/null | head -1`
+	localindex=`diff $index .legit/index/$index 2>&1`
+	localrepo=`diff $index .legit/commits/"$repo"/$index 2>&1`
+	indexrepo=`diff .legit/index/$index .legit/commits/"$repo"/$index 2>&1`
+	
+	#Checking if file exists
+	emptrepo=0
+	emptlocal=0
+	emptindex=0
+	if test -f $index
+	then
+		emptlocal=1
+	fi
+	
+	if test -f .legit/index/$index
+	then
+		emptindex=1
+	fi
+	
+	if test -f .legit/commits/"$repo"/$index
+	then
+		emptrepo=1
+	fi
+	
+	
+	#Cases if Missing files
+	#Empty Local
+	if [ $emptindex -eq 1 ]
+	then
+		if [ $emptrepo -eq 1 ]
+		then
+			if [ $emptlocal -eq 0 ]
+			then
+				continue
+			fi
+		fi
+	fi 
+	#Empty Local and Index
+	if [ $emptlocal -eq 0 ]
+	then
+		if [ $emptindex -eq 0 ]
+		then
+			if [ $emptrepo -eq 1 ]
+			then
+				echo "legit-rm: error: '$index' is not in the legit repository"
+				exit 1
+			fi
+		fi
+	fi
+	# Same in local and index. Removed in Repo
+	if [ "$localindex" = "" ]
+	then
+		if [ $emptrepo -eq 0 ]
+		then
+			if [ $cached -gt 0 ]
+			then
+				continue
+			fi
+			
+			echo "legit-rm: error: '$index' has changes staged in the index"
+			exit 1
+		fi
+	fi
+	#Exists in local but does not in index and repo 
+	if [ $emptlocal -eq 1 ]
+	then
+		if [ $emptindex -eq 0 ]
+		then
+			if [ $emptrepo -eq 0 ]
+			then
+				echo "legit-rm: error: '$index' is not in the legit repository"
+				exit 1
+			fi
+		fi
+	fi
+	
+	# Exist in Direct None in INdex Exist in Repo
+	if [ $emptlocal -eq 1 ]
+	then
+		if [ $emptindex -eq 0 ]
+		then
+			if [ $emptrepo -eq 1 ]
+			then
+				echo "legit-rm: error: '$index' is not in the legit repository"
+				exit 1
+			fi
+		fi
+	fi
+	
+	# All Empty
+	if [ $emptlocal -eq 0 ]
+	then
+		if [ $emptindex -eq 0 ]
+		then
+			if [ $emptrepo -eq 0 ]
+			then
+				echo "legit-rm: error: '$index' is not in the legit repository"
+				exit 1
+			fi
+		fi
+	fi	
+	
+done
+
+
+
+
+
+
+
+
+# Error checking only for errors that can bypassed by --force
+for index in $@
+do
+	# If --force
+	if [ $index = "--force" ]
+	then
+		continue
+	fi
+	
+	# If --cached
+	if [ $index = "--cached" ]
+	then
+		continue
+	fi
+
+	#Checking if files are different
+	repo=`ls .legit/commits | sort -n -r 2> /dev/null | head -1`
+	localindex=`diff $index .legit/index/$index 2>&1`
+	localrepo=`diff $index .legit/commits/"$repo"/$index 2>&1`
+	indexrepo=`diff .legit/index/$index .legit/commits/"$repo"/$index 2>&1`
+	allsame=0
+	alldiff=0
+	if [ "$localindex" = "" ]
+	then
+		if [ "$indexrepo" = "" ]
+		then
+			if [ "$localrepo" = "" ]
+			then
+				allsame=1
+			fi
+		fi
+	elif [ "$localindex" != "" ]
+	then
+		if [ "$localindex" != "" ]
+		then
+			if [ "$indexrepo" != "" ]
+			then
+				alldiff=1
+			fi
+		fi
+	fi
+
+	# No Force and Cached	
+	if [ $fctotal -eq 0 ]
+	then	
+		#All Same
+		if [ $allsame -eq 1 ]
+		then
+			continue	
+		#All Different			
+		elif [ $alldiff -eq 1 ]
+		then
+			echo "legit-rm: error: '$index' in index is different to both working file and repository"
+			exit 1
+		#If Local and Repo are same
+		elif [ "$localrepo" = "" ]
+		then
+			echo "legit-rm: error: '$index' in index is different to both working file and repository"
+			exit 1
+		#If Local and Index are same
+		elif [ "$localindex" = "" ]
+		then
+			echo "legit-rm: error: '$index' has changes staged in the index"
+			exit 1
+		#If Index and Repo are same
+		elif [ "$indexrepo" = "" ]
+		then
+			echo "legit-rm: error: '$index' in repository is different to working file"
+			exit 1
+		fi		
+	fi
+	
+	# Cached Only
+	if [ $cached -gt 0 ]
+	then 
+		if [ $force -eq 0 ]
+		then
+			#All Same
+			if [ $allsame -eq 1 ]
+			then 
+				continue
+			#All Different
+			elif [ $alldiff -eq 1 ]
+			then
+				echo "legit-rm: error: '$index' in index is different to both working file and repository"
+				exit 1
+			#If Local and Repo are same
+			elif [ "$localrepo" = "" ]
+			then
+				echo "legit-rm: error: '$index' in index is different to both working file and repository"
+				exit 1
+			fi
+		fi
+	fi	
+done
+
+# Going through the arguments this time now actually implementing 
+for index in $@
+do
+	# If --force
+	if [ $index = "--force" ]
+	then
+		continue
+	fi
+	
+	# If --cached
+	if [ $index = "--cached" ]
+	then
+		continue
+	fi
+
+	#Checking if files are different
+	repo=`ls .legit/commits | sort -n -r 2> /dev/null | head -1`
+	localindex=`diff $index .legit/index/$index 2>&1`
+	localrepo=`diff $index .legit/commits/$repo/$index 2>&1`
+	indexrepo=`diff .legit/index/$index .legit/commits/$repo/$index 2>&1`
+	allsame=0
+	alldiff=0
+	if [ "$localindex" = "" ]
+	then
+		if [ "$indexrepo" = "" ]
+		then
+			if [ "$localrepo" = "" ]
+			then
+				allsame=1
+			fi
+		fi
+	elif [ "$localindex" != "" ]
+	then
+		if [ "$localindex" != "" ]
+		then
+			if [ "$indexrepo" != "" ]
+			then
+				alldiff=1
+			fi
+		fi
+	fi
+
+	# No Force and Cached	
+	if [ $fctotal -eq 0 ]
+	then				
+		#If they are all the same
+		rm -f "$index" 2> /dev/null
+		rm -f ".legit/index/$index"
+		continue
+	fi
+	
+	# Force Only
+	if [ $force -gt 0 ]
+	then
+		if [ $cached -eq 0 ]
+		then
+			#Removing both local and index files
+			rm -f "$index" 2> /dev/null
+			rm -f ".legit/index/$index"
+			continue
+		fi
+	fi
+	
+	# Cached Only
+	if [ $cached -gt 0 ]
+	then 
+		if [ $force -eq 0 ]
+		then
+			#Removing Index Files
+			rm -f ".legit/index/$index"
+			continue
+		fi
+	fi	
+	
+	# Force and Cached
+	if [ $cached -gt 0 ]
+	then
+		if [ $force -gt 0 ]
+		then
+			#Removing only in index
+			rm -f ".legit/index/$index"
+			continue
+		fi
+	fi
+done
