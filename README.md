@@ -1,5 +1,3 @@
-Don't push changes to this repository directly.
-
-Don't change the repository via the web interface
-
-Submit your work using give, and it will be automatically pushed to this repository.
+COMP2041 First Assignment
+In this assignment I need to recreate git using dash.
+I have implemented git add, git commit, git init, git log, git rm, git show and git status.
